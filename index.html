@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATM Banking System</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #e6f7ff;
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .card {
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container animate__animated animate__fadeIn">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <h3 class="text-center">ATM Login</h3>
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="card-number">Card Number:</label>
+                            <input type="text" class="form-control" id="card-number" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="pin">PIN:</label>
+                            <input type="password" class="form-control" id="pin" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Login</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center hidden" id="dashboard">
+            <div class="col-md-6 mt-4">
+                <div class="card animate__animated animate__fadeInUp">
+                    <div class="card-body">
+                        <h4 class="card-title">Welcome to Your ATM</h4>
+                        <p>Choose an option:</p>
+                        <button class="btn btn-success btn-block mb-2" onclick="checkBalance()">Check Balance</button>
+                        <button class="btn btn-info btn-block mb-2" onclick="depositFunds()">Deposit</button>
+                        <button class="btn btn-warning btn-block mb-2" onclick="withdrawFunds()">Withdraw</button>
+                        <button class="btn btn-secondary btn-block mb-2" onclick="showHistory()">Transaction History</button>
+                        <button class="btn btn-danger btn-block" onclick="logout()">Exit</button>
+                        <div id="output" class="mt-3 text-center font-weight-bold"></div>
+                        <canvas id="balanceChart" class="mt-4"></canvas>
+                        <ul id="historyList" class="mt-3"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById("login-form");
+        const dashboard = document.getElementById("dashboard");
+        const output = document.getElementById("output");
+        const historyList = document.getElementById("historyList");
+        let balance = 1000;
+        let transactionHistory = [];
+        let balanceChart;
+
+        loginForm.addEventListener("submit", function(e) {
+            e.preventDefault();
+            loginForm.parentElement.parentElement.classList.add("hidden");
+            dashboard.classList.remove("hidden");
+            updateChart();
+        });
+
+        function checkBalance() {
+            output.innerText = `Your current balance is ₹${balance}`;
+        }
+
+        function depositFunds() {
+            let amount = prompt("Enter amount to deposit:");
+            if (amount && !isNaN(amount)) {
+                balance += parseFloat(amount);
+                transactionHistory.push({ type: "Deposit", amount: parseFloat(amount), date: new Date().toLocaleString() });
+                output.innerText = `Deposited ₹${amount}. New balance: ₹${balance}`;
+                updateChart();
+            }
+        }
+
+        function withdrawFunds() {
+            let amount = prompt("Enter amount to withdraw:");
+            if (amount && !isNaN(amount)) {
+                amount = parseFloat(amount);
+                if (amount <= balance) {
+                    balance -= amount;
+                    transactionHistory.push({ type: "Withdraw", amount: amount, date: new Date().toLocaleString() });
+                    output.innerText = `Withdrew ₹${amount}. New balance: ₹${balance}`;
+                    updateChart();
+                } else {
+                    output.innerText = "Insufficient balance.";
+                }
+            }
+        }
+
+        function logout() {
+            location.reload();
+        }
+
+        function showHistory() {
+            historyList.innerHTML = "<h5 class='mt-3'>Transaction History:</h5>";
+            transactionHistory.forEach(txn => {
+                const li = document.createElement("li");
+                li.textContent = `${txn.date} - ${txn.type} - ₹${txn.amount}`;
+                historyList.appendChild(li);
+            });
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById("balanceChart").getContext("2d");
+            const labels = transactionHistory.map((_, index) => index + 1);
+            const data = transactionHistory.reduce((acc, txn) => {
+                const last = acc.length > 0 ? acc[acc.length - 1] : 1000;
+                const newBalance = txn.type === "Deposit" ? last + txn.amount : last - txn.amount;
+                acc.push(newBalance);
+                return acc;
+            }, []);
+
+            if (balanceChart) balanceChart.destroy();
+
+            balanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Balance Over Time',
+                        data: data,
+                        borderColor: 'blue',
+                        backgroundColor: 'lightblue',
+                        fill: false,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: true }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
